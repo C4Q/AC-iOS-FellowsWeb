@@ -7,12 +7,15 @@
 //
 
 import UIKit
+import SafariServices
 
 class DetailViewController: UIViewController {
     
     let detailView = DetailView()
     
     private var fellow: Fellow!
+    
+    private var sfSafariVC: SFSafariViewController!
     
     init(fellow: Fellow, image: UIImage) {
         super.init(nibName: nil, bundle: nil)
@@ -32,7 +35,40 @@ class DetailViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .clear
         view.addSubview(detailView)
+        detailView.safariLinkButton.addTarget(self, action: #selector(launchSafari), for: .touchUpInside)
+        detailView.webViewLinkButton.addTarget(self, action: #selector(showWebView), for: .touchUpInside)
+        detailView.githubLinkButton.addTarget(self, action: #selector(showSFSafariVC), for: .touchUpInside)
         configureNavBar()
+    }
+    
+    // Presenting Web Content (Method 1) - via Safari
+    // Advantage: user is taken away from your app, may not return :-(
+    @objc private func launchSafari() {
+        UIApplication.shared.open(URL(string:"https://developer.apple.com/documentation")!, options: [:]) { (done) in
+            print("safari was launched")
+        }
+    }
+    
+    // Presenting Web Content (Method 2) - via WKWebView
+    // Advantages: developer is able to customize UI, user is still in your app
+    // Disadvantages: you don't access to the Apple's keychain, so the user's credentials is not available
+    @objc private func showWebView() {
+        let urlRequest = URLRequest(url: URL(string:"https://c4q.nyc")!)
+        let webVC = WebViewController(urlRequest: urlRequest)
+        navigationController?.pushViewController(webVC, animated: true)
+    }
+    
+    // Presenting Web Content (Method 3) - via SFSafariViewController
+    // Advantage: * all the benefits of Safari, e.g Apple Keychain access
+    //            Security Note: developers don't have access to user's information
+    //            * users stay within your app
+    //            * third party authentication via (Oauth) e.g logging with Facebook
+    // Disadvantage: n/a
+    @objc private func showSFSafariVC() {
+        sfSafariVC = SFSafariViewController(url: fellow.githubURL)
+        sfSafariVC.delegate = self
+        
+        navigationController?.pushViewController(sfSafariVC, animated: true)
     }
     
     private func configureNavBar() {
@@ -49,5 +85,10 @@ class DetailViewController: UIViewController {
     @objc func dismissView() {
         dismiss(animated: true, completion: nil)
     }
+}
 
+extension DetailViewController: SFSafariViewControllerDelegate {
+    func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
+        navigationController?.popViewController(animated: true)
+    }
 }
